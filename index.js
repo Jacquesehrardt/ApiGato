@@ -23,7 +23,7 @@ const mqttTopic = "990015dd0a89e09a372ab2d7438b778eec6ee2ae/tag"
 const server = express();
 
 server.use(cors());
-server.listen(3333);
+server.listen(process.env.PORT || 3333);
 
 server.get("/", async (request, response) => {
     const dados = await Consumo.findAll({
