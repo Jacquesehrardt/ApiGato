@@ -6,6 +6,7 @@ import {Op} from "sequelize"
 import mqttConfig from "./config/mqtt.js"
 import database from "./database.js"
 import Consumo from "./Consumo.js"
+import sequelize from "sequelize"
 
 const groupBy = function(array, key) {
     return array.reduce(function(accumulator, currentItem) {
@@ -35,6 +36,22 @@ server.get("/", async (request, response) => {
         data
     }));
     return response.json(series);
+})
+
+server.get("/totalconsumo", async (request, response) => {
+    const dados = await Consumo.findAll({
+        attributes:[
+            "nome_gato", 
+            [sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'data'],
+            [sequelize.fn('sum', sequelize.col('value')), 'total']
+        ],
+        group: [
+            'nome_gato',
+            'data'
+        ],
+    })
+
+    return response.json(dados);
 })
 
 client.on('connect', function () {
