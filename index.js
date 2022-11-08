@@ -15,6 +15,13 @@ const groupBy = function(array, key) {
     }, {});
 };
 
+const groupTotalConsumoBy = function(array, key) {
+    return array.reduce(function(accumulator, currentItem) {
+        (accumulator[currentItem[key]] = accumulator[currentItem[key]] || []).push(currentItem.total);
+        return accumulator;
+    }, {});
+};
+
 database.sync()
 
 const mqttURL = `mqtt://${mqttConfig.host}:${mqttConfig.port}`
@@ -29,6 +36,10 @@ server.listen(process.env.PORT || 3333);
 server.get("/", async (request, response) => {
     const dados = await Consumo.findAll({
         attributes:["nome_gato", "created_at", "value"],
+        order:[
+            ["created_at", "ASC"],
+            ["nome_gato", "ASC"]
+        ],
     })
     const dadosAgrupados = groupBy(dados, "nome_gato");
     const series = Object.entries(dadosAgrupados).map(([name, data]) => ({
@@ -49,9 +60,24 @@ server.get("/totalconsumo", async (request, response) => {
             'nome_gato',
             'data'
         ],
+        order:[
+            ["data", "ASC"],
+            ["nome_gato", "ASC"]
+        ],
+        raw: true,
     })
+    const dadosAgrupados = groupTotalConsumoBy(dados, "nome_gato");
+    const series = Object.entries(dadosAgrupados).map(([name, data]) => ({
+        name, 
+        data
+    }));
 
-    return response.json(dados);
+    const xaxis = dados.map(dado => new Date(dado.data).toLocaleDateString("pt-br"))
+
+    return response.json({
+        series,
+        xaxis: [...new Set(xaxis)]
+    });
 })
 
 client.on('connect', function () {
